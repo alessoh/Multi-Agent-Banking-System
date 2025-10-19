@@ -1,0 +1,9 @@
+# Core dependencies for the multi-agent banking system
+google-adk>=1.10.0
+a2a-sdk>=0.2.5
+google-generativeai
+python-dotenv
+uvicorn
+httpx
+nest-asyncio
+click
