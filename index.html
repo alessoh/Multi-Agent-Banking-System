@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cymbal Bank - AI Banking Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🏦 Cymbal Bank</h1>
+            <p class="subtitle">Your Intelligent Banking Assistant</p>
+        </header>
+
+        <div class="main-content">
+            <div class="chat-container">
+                <div class="agent-info">
+                    <h2>Chat with our AI Specialists</h2>
+                    <p>Ask about spending, goals, investments, perks, or advisors</p>
+                </div>
+
+                <div id="messages" class="messages"></div>
+
+                <div class="input-container">
+                    <textarea 
+                        id="userInput" 
+                        placeholder="Ask me anything about your finances..."
+                        rows="3"
+                    ></textarea>
+                    <button id="sendButton" onclick="sendMessage()">Send</button>
+                </div>
+
+                <div class="example-queries">
+                    <p><strong>Try asking:</strong></p>
+                    <button class="example-btn" onclick="setQuery('What did I spend on groceries last month?')">Spending Analysis</button>
+                    <button class="example-btn" onclick="setQuery('How am I doing on my emergency fund goal?')">Goal Progress</button>
+                    <button class="example-btn" onclick="setQuery('What is my net worth?')">Net Worth</button>
+                    <button class="example-btn" onclick="setQuery('What perks can save me money?')">Available Perks</button>
+                    <button class="example-btn" onclick="setQuery('I need help with retirement planning')">Find Advisor</button>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <p>Powered by Google Gemini AI and Multi-Agent Architecture</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
