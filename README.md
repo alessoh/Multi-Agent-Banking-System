@@ -17,26 +17,47 @@ This project implements a multi-agent architecture where an intelligent orchestr
 - **Financial Advisors**: Connect with specialists for personalized guidance
 
 multi-agent-banking/
+
 │
+
 ├── .env                          # Environment variables (API key)
+
 ├── requirements.txt              # Python dependencies
+
 ├── config.py                     # Configuration settings
+
 ├── bank_wrapper.py               # Banking data access wrapper
+
 │
+
 ├── spending_agent.py             # Spending specialist agent
+
 ├── goals_agent.py                # Goals specialist agent
+
 ├── portfolio_agent.py            # Portfolio specialist agent
+
 ├── perks_agent.py                # Perks specialist agent
+
 ├── advisors_agent.py             # Advisors specialist agent
+
 ├── main_orchestrator.py          # Chat orchestrator (main agent)
+
 │
+
 ├── start_agents.py               # Script to start all agents
+
 │
+
 ├── index.html                    # Web interface
+
 ├── styles.css                    # Interface styling
+
 ├── app.js                        # Frontend JavaScript
+
 │
+
 └── README.md                     # Setup and usage documentation
+
 
 ## Requirements
 
