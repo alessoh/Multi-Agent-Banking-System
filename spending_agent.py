@@ -1,8 +1,10 @@
-from google.adk.agents import LlmAgent
-from google.adk.tools import FunctionTool
+import google.generativeai as genai
 from config import Config
 from bank_wrapper import bank_data
 import json
+
+# Configure Gemini
+genai.configure(api_key=Config.GOOGLE_API_KEY)
 
 def get_spending_summary():
     """Get a summary of recent spending by category"""
@@ -28,7 +30,7 @@ def get_monthly_trends():
     
     months = {}
     for txn in all_transactions:
-        month = txn["date"][:7]  # YYYY-MM
+        month = txn["date"][:7]
         months[month] = months.get(month, 0) + txn["amount"]
     
     trends = {
@@ -37,34 +39,74 @@ def get_monthly_trends():
     }
     return json.dumps(trends, indent=2)
 
-# Create the spending agent
-spending_agent = LlmAgent(
-    model=Config.MODEL_NAME,
-    name="spending_specialist",
-    description="Specialist agent for spending analysis, transactions, budgeting, and expense management",
-    instruction="""
-    You are a spending and transaction specialist at Cymbal Bank. Your role is to help users 
-    understand their spending patterns, identify savings opportunities, and manage their budgets effectively.
+class SpendingAgent:
+    """Spending specialist agent"""
     
-    Your Capabilities:
-    - Analyze spending by category
-    - Identify spending trends over time
-    - Suggest areas to reduce expenses
-    - Provide insights on transaction patterns
-    - Answer questions about recent purchases
+    def __init__(self):
+        self.name = "spending_specialist"
+        self.instruction = """
+        You are a spending and transaction specialist at Cymbal Bank. Your role is to help users 
+        understand their spending patterns, identify savings opportunities, and manage their budgets effectively.
+        
+        Your Capabilities:
+        - Analyze spending by category
+        - Identify spending trends over time
+        - Suggest areas to reduce expenses
+        - Provide insights on transaction patterns
+        - Answer questions about recent purchases
+        
+        When responding:
+        1. Use the data provided to give accurate spending information
+        2. Provide specific numbers and percentages
+        3. Offer actionable advice for saving money
+        4. Be concise but thorough in your analysis
+        5. Always maintain a helpful and encouraging tone
+        
+        If asked about something outside spending/transactions, politely explain your specialization.
+        """
+        
+        self.model = genai.GenerativeModel(
+            model_name=Config.MODEL_NAME,
+            system_instruction=self.instruction
+        )
+        
+        self.tools = {
+            'get_spending_summary': get_spending_summary,
+            'get_recent_transactions': get_recent_transactions,
+            'get_monthly_trends': get_monthly_trends
+        }
     
-    When responding:
-    1. Use the tools available to gather accurate spending data
-    2. Provide specific numbers and percentages
-    3. Offer actionable advice for saving money
-    4. Be concise but thorough in your analysis
-    5. Always maintain a helpful and encouraging tone
-    
-    If asked about something outside spending/transactions, politely explain your specialization.
-    """,
-    tools=[
-        FunctionTool(get_spending_summary),
-        FunctionTool(get_recent_transactions),
-        FunctionTool(get_monthly_trends)
-    ]
-)
+    def process_query(self, query):
+        """Process a user query"""
+        try:
+            # Get all data upfront
+            spending_data = get_spending_summary()
+            transactions = get_recent_transactions()
+            trends = get_monthly_trends()
+            
+            # Create context with data
+            context = f"""
+User Query: {query}
+
+Available Data:
+
+Spending Summary:
+{spending_data}
+
+Recent Transactions:
+{transactions}
+
+Monthly Trends:
+{trends}
+
+Please provide a helpful response based on this data. Be specific and actionable.
+"""
+            
+            response = self.model.generate_content(context)
+            return response.text
+            
+        except Exception as e:
+            return f"Error processing query: {str(e)}"
+
+# Create the agent instance
+spending_agent = SpendingAgent()

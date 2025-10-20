@@ -33,7 +33,7 @@ class Config:
     ADVISORS_AGENT_URL = f"http://localhost:{ADVISORS_AGENT_PORT}"
     CHAT_ORCHESTRATOR_URL = f"http://localhost:{CHAT_ORCHESTRATOR_PORT}"
     
-    # Gemini Model
+    # Gemini Model - using a model that's available for your API key
     MODEL_NAME = "gemini-2.0-flash-exp"
     
     # CORS Configuration

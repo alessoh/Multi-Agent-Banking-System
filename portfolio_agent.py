@@ -1,8 +1,10 @@
-from google.adk.agents import LlmAgent
-from google.adk.tools import FunctionTool
+import google.generativeai as genai
 from config import Config
 from bank_wrapper import bank_data
 import json
+
+# Configure Gemini
+genai.configure(api_key=Config.GOOGLE_API_KEY)
 
 def get_portfolio_summary():
     """Get investment portfolio summary"""
@@ -28,13 +30,10 @@ def get_debt_summary():
     return json.dumps(summary, indent=2)
 
 def calculate_debt_payoff_strategies():
-    """Calculate debt payoff strategies (avalanche and snowball)"""
+    """Calculate debt payoff strategies"""
     debts = bank_data.get_debts()
     
-    # Avalanche method (highest interest rate first)
     avalanche = sorted(debts, key=lambda x: x["interest_rate"], reverse=True)
-    
-    # Snowball method (lowest balance first)
     snowball = sorted(debts, key=lambda x: x["balance"])
     
     strategies = {
@@ -58,42 +57,84 @@ def analyze_asset_allocation():
         "current_allocation": holdings,
         "total_value": investments["total_value"],
         "diversification_score": len(holdings),
-        "performance": investments["performance"],
-        "recommendation": "Your portfolio shows good diversification across asset classes."
+        "performance": investments["performance"]
     }
     return json.dumps(analysis, indent=2)
 
-# Create the portfolio agent
-portfolio_agent = LlmAgent(
-    model=Config.MODEL_NAME,
-    name="portfolio_specialist",
-    description="Specialist agent for investment portfolios, debt management, and net worth analysis",
-    instruction="""
-    You are an investment portfolio specialist at Cymbal Bank. Your role is to help users 
-    understand their investments, manage debt, and build wealth through informed decisions.
+class PortfolioAgent:
+    """Investment portfolio specialist agent"""
     
-    Your Capabilities:
-    - Analyze investment portfolio performance
-    - Calculate net worth
-    - Provide debt payoff strategies
-    - Assess asset allocation
-    - Offer portfolio diversification advice
+    def __init__(self):
+        self.name = "portfolio_specialist"
+        self.instruction = """
+        You are an investment portfolio specialist at Cymbal Bank. Your role is to help users 
+        understand their investments, manage debt, and build wealth through informed decisions.
+        
+        Your Capabilities:
+        - Analyze investment portfolio performance
+        - Calculate net worth
+        - Provide debt payoff strategies
+        - Assess asset allocation
+        - Offer portfolio diversification advice
+        
+        When responding:
+        1. Use the data to access accurate financial information
+        2. Explain complex financial concepts in simple terms
+        3. Provide specific recommendations with rationale
+        4. Compare different strategies (e.g., avalanche vs snowball for debt)
+        5. Focus on long-term wealth building
+        6. Always note that you provide general guidance, not personalized financial advice
+        
+        If asked about topics outside investments/debt/portfolio, politely redirect to your specialty.
+        """
+        
+        self.model = genai.GenerativeModel(
+            model_name=Config.MODEL_NAME,
+            system_instruction=self.instruction
+        )
     
-    When responding:
-    1. Use the tools to access accurate financial data
-    2. Explain complex financial concepts in simple terms
-    3. Provide specific recommendations with rationale
-    4. Compare different strategies (e.g., avalanche vs snowball for debt)
-    5. Focus on long-term wealth building
-    6. Always note that you provide general guidance, not personalized financial advice
-    
-    If asked about topics outside investments/debt/portfolio, politely redirect to your specialty.
-    """,
-    tools=[
-        FunctionTool(get_portfolio_summary),
-        FunctionTool(get_net_worth),
-        FunctionTool(get_debt_summary),
-        FunctionTool(calculate_debt_payoff_strategies),
-        FunctionTool(analyze_asset_allocation)
-    ]
-)
+    def process_query(self, query):
+        """Process a user query"""
+        try:
+            # Get all portfolio data
+            portfolio_data = get_portfolio_summary()
+            net_worth_data = get_net_worth()
+            debt_data = get_debt_summary()
+            strategies = calculate_debt_payoff_strategies()
+            allocation = analyze_asset_allocation()
+            
+            # Create context with data
+            context = f"""
+User Query: {query}
+
+Available Data:
+
+Portfolio Summary:
+{portfolio_data}
+
+Net Worth:
+{net_worth_data}
+
+Debt Summary:
+{debt_data}
+
+Debt Payoff Strategies:
+{strategies}
+
+Asset Allocation Analysis:
+{allocation}
+
+Please provide a helpful response based on this data. Be specific and educational.
+"""
+            
+            response = self.model.generate_content(context)
+            return response.text
+            
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Error in PortfolioAgent: {error_details}")
+            return f"Error processing query: {str(e)}"
+
+# Create the agent instance
+portfolio_agent = PortfolioAgent()

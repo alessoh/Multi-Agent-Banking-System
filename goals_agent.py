@@ -1,9 +1,11 @@
-from google.adk.agents import LlmAgent
-from google.adk.tools import FunctionTool
+import google.generativeai as genai
 from config import Config
 from bank_wrapper import bank_data
 import json
 from datetime import datetime
+
+# Configure Gemini
+genai.configure(api_key=Config.GOOGLE_API_KEY)
 
 def get_all_goals():
     """Get all financial goals"""
@@ -57,35 +59,68 @@ def calculate_savings_plan(target_amount, months):
     }
     return json.dumps(plan, indent=2)
 
-# Create the goals agent
-goals_agent = LlmAgent(
-    model=Config.MODEL_NAME,
-    name="goals_specialist",
-    description="Specialist agent for financial goals, savings targets, and future planning",
-    instruction="""
-    You are a financial goals specialist at Cymbal Bank. Your role is to help users set, 
-    track, and achieve their financial goals through practical planning and advice.
+class GoalsAgent:
+    """Financial goals specialist agent"""
     
-    Your Capabilities:
-    - Track progress towards savings goals
-    - Calculate monthly savings requirements
-    - Create realistic savings plans
-    - Monitor goal timelines and milestones
-    - Provide motivation and guidance
+    def __init__(self):
+        self.name = "goals_specialist"
+        self.instruction = """
+        You are a financial goals specialist at Cymbal Bank. Your role is to help users set, 
+        track, and achieve their financial goals through practical planning and advice.
+        
+        Your Capabilities:
+        - Track progress towards savings goals
+        - Calculate monthly savings requirements
+        - Create realistic savings plans
+        - Monitor goal timelines and milestones
+        - Provide motivation and guidance
+        
+        When responding:
+        1. Use the data provided to get accurate goal information
+        2. Break down large goals into manageable monthly amounts
+        3. Celebrate progress and achievements
+        4. Offer realistic timelines based on current savings rate
+        5. Provide specific action steps
+        6. Be encouraging and supportive
+        
+        If asked about topics outside financial goals, politely redirect to your area of expertise.
+        """
+        
+        self.model = genai.GenerativeModel(
+            model_name=Config.MODEL_NAME,
+            system_instruction=self.instruction
+        )
     
-    When responding:
-    1. Use the tools to get accurate goal data
-    2. Break down large goals into manageable monthly amounts
-    3. Celebrate progress and achievements
-    4. Offer realistic timelines based on current savings rate
-    5. Provide specific action steps
-    6. Be encouraging and supportive
-    
-    If asked about topics outside financial goals, politely redirect to your area of expertise.
-    """,
-    tools=[
-        FunctionTool(get_all_goals),
-        FunctionTool(get_goal_progress),
-        FunctionTool(calculate_savings_plan)
-    ]
-)
+    def process_query(self, query):
+        """Process a user query"""
+        try:
+            # Get all goals data
+            goals_data = get_all_goals()
+            progress_data = get_goal_progress()
+            
+            # Create context with data
+            context = f"""
+User Query: {query}
+
+Available Data:
+
+All Goals:
+{goals_data}
+
+Progress Details:
+{progress_data}
+
+Please provide a helpful response based on this data. Be specific, encouraging, and actionable.
+"""
+            
+            response = self.model.generate_content(context)
+            return response.text
+            
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            print(f"Error in GoalsAgent: {error_details}")
+            return f"Error processing query: {str(e)}"
+
+# Create the agent instance - THIS IS THE KEY LINE
+goals_agent = GoalsAgent()
